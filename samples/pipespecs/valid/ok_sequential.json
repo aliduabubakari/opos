@@ -1,0 +1,12 @@
+{
+  "pipespec_version": "1.0",
+  "metadata": {"analysis_timestamp": "2026-01-01T10:00:00Z", "source_file": "ok_seq.txt"},
+  "pipeline_summary": {"name": "ok_sequential", "description": "Extract then load", "complexity": "low"},
+  "components": [
+    {"id": "extract", "name": "Extract", "category": "Extractor", "executor_type": "http", "io_spec": [], "upstream_policy": {"type": "all_success"}, "retry_policy": {"max_attempts": 1}, "connections": [{"id": "api"}]},
+    {"id": "load", "name": "Load", "category": "Loader", "executor_type": "python", "io_spec": [], "upstream_policy": {"type": "all_success"}, "retry_policy": {"max_attempts": 1}, "connections": [{"id": "warehouse"}]}
+  ],
+  "flow_structure": {"pattern": "sequential", "entry_points": ["extract"], "edges": [{"from": "extract", "to": "load", "edge_type": "success"}]},
+  "parameters": {"pipeline": {}, "components": {}, "environment": {}},
+  "integrations": {"connections": [{"id": "api", "type": "api", "authentication": {"type": "none"}}, {"id": "warehouse", "type": "database", "authentication": {"type": "none"}}]}
+}

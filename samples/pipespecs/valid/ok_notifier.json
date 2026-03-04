@@ -1,0 +1,12 @@
+{
+  "pipespec_version": "1.0",
+  "metadata": {"analysis_timestamp": "2026-01-03T10:00:00Z", "source_file": "ok_notify.txt"},
+  "pipeline_summary": {"name": "ok_notifier", "description": "Run check then notify", "complexity": "low"},
+  "components": [
+    {"id": "quality", "name": "Quality", "category": "QualityCheck", "executor_type": "python", "io_spec": [], "upstream_policy": {"type": "all_success"}, "retry_policy": {"max_attempts": 1}, "connections": [{"id": "api"}]},
+    {"id": "notify", "name": "Notify", "category": "Notifier", "executor_type": "email", "io_spec": [], "upstream_policy": {"type": "all_success"}, "retry_policy": {"max_attempts": 1}, "connections": [{"id": "smtp"}]}
+  ],
+  "flow_structure": {"pattern": "sequential", "entry_points": ["quality"], "edges": [{"from": "quality", "to": "notify", "edge_type": "success"}]},
+  "parameters": {"pipeline": {}, "components": {}, "environment": {}},
+  "integrations": {"connections": [{"id": "api", "type": "api", "authentication": {"type": "none"}}, {"id": "smtp", "type": "smtp", "authentication": {"type": "none"}}]}
+}

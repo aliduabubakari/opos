@@ -1,0 +1,13 @@
+{
+  "pipespec_version": "1.0",
+  "metadata": {"analysis_timestamp": "2025-10-01T08:00:00Z", "source_file": "marketing.txt"},
+  "pipeline_summary": {"name": "digital_marketing_pipeline", "description": "Fetch campaigns, transform metrics, send email", "complexity": "medium"},
+  "components": [
+    {"id": "fetch_campaigns", "name": "Fetch Campaigns", "category": "Extractor", "executor_type": "http", "io_spec": [], "upstream_policy": {"type": "all_success"}, "retry_policy": {"max_attempts": 2}, "connections": [{"id": "ads_api"}]},
+    {"id": "transform_metrics", "name": "Transform", "category": "Transformer", "executor_type": "python", "io_spec": [], "upstream_policy": {"type": "all_success"}, "retry_policy": {"max_attempts": 2}, "connections": [{"id": "warehouse"}]},
+    {"id": "notify_team", "name": "Notify", "category": "Notifier", "executor_type": "email", "io_spec": [], "upstream_policy": {"type": "all_success"}, "retry_policy": {"max_attempts": 1}, "connections": [{"id": "smtp"}]}
+  ],
+  "flow_structure": {"pattern": "sequential", "entry_points": ["fetch_campaigns"], "edges": [{"from": "fetch_campaigns", "to": "transform_metrics", "edge_type": "success"}, {"from": "transform_metrics", "to": "notify_team", "edge_type": "success"}]},
+  "parameters": {"pipeline": {}, "components": {}, "environment": {}},
+  "integrations": {"connections": [{"id": "ads_api", "type": "api", "authentication": {"type": "none"}}, {"id": "warehouse", "type": "database", "authentication": {"type": "none"}}, {"id": "smtp", "type": "smtp", "authentication": {"type": "none"}}]}
+}

@@ -1,0 +1,9 @@
+{
+  "pipespec_version": "1.0",
+  "metadata": {},
+  "pipeline_summary": {"name": "empty_components", "description": "No tasks", "complexity": "low"},
+  "components": [],
+  "flow_structure": {"pattern": "sequential", "entry_points": [], "edges": []},
+  "parameters": {"pipeline": {}, "components": {}, "environment": {}},
+  "integrations": {"connections": []}
+}

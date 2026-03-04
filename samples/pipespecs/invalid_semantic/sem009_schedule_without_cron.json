@@ -1,0 +1,18 @@
+{
+  "pipespec_version": "1.0",
+  "metadata": {"analysis_timestamp": "2026-01-05T10:40:00Z"},
+  "pipeline_summary": {"name": "sem009_schedule", "description": "Schedule enabled without cron", "complexity": "low"},
+  "components": [
+    {"id": "single", "name": "Single", "category": "Extractor", "executor_type": "python", "io_spec": [], "upstream_policy": {"type": "all_success"}, "retry_policy": {"max_attempts": 1}, "connections": []}
+  ],
+  "flow_structure": {"pattern": "sequential", "entry_points": ["single"], "edges": []},
+  "parameters": {
+    "pipeline": {},
+    "schedule": {
+      "enabled": {"type": "boolean", "default": true}
+    },
+    "components": {},
+    "environment": {}
+  },
+  "integrations": {"connections": []}
+}

@@ -1,0 +1,12 @@
+{
+  "pipespec_version": "1.0",
+  "metadata": {"analysis_timestamp": "2025-10-11T08:00:00Z", "source_file": "pm25.txt"},
+  "pipeline_summary": {"name": "pm25_alert_pipeline", "description": "Check PM2.5 and alert", "complexity": "low"},
+  "components": [
+    {"id": "extract_pm25", "name": "Extract PM2.5", "category": "Extractor", "executor_type": "http", "io_spec": [], "upstream_policy": {"type": "all_success"}, "retry_policy": {"max_attempts": 2}, "connections": [{"id": "pm25_api"}]},
+    {"id": "validate_threshold", "name": "Validate Threshold", "category": "QualityCheck", "executor_type": "python", "io_spec": [], "upstream_policy": {"type": "all_success"}, "retry_policy": {"max_attempts": 2}, "connections": [{"id": "pm25_api"}]}
+  ],
+  "flow_structure": {"pattern": "sequential", "entry_points": ["extract_pm25"], "edges": [{"from": "extract_pm25", "to": "validate_threshold", "edge_type": "success"}]},
+  "parameters": {"pipeline": {}, "components": {}, "environment": {"PM25_API_KEY": {"type": "string", "required": true, "associated_component_id": "extract_pm25"}}},
+  "integrations": {"connections": [{"id": "pm25_api", "name": "PM API", "type": "api", "authentication": {"type": "token", "token_env_var": "PM25_API_KEY"}, "used_by_components": ["extract_pm25", "validate_threshold"], "direction": "input"}]}
+}

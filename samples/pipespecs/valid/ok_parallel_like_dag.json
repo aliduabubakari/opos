@@ -1,0 +1,23 @@
+{
+  "pipespec_version": "1.0",
+  "metadata": {"analysis_timestamp": "2026-01-02T10:00:00Z", "source_file": "ok_dag.txt"},
+  "pipeline_summary": {"name": "ok_parallel_like_dag", "description": "Fan out then join", "complexity": "medium"},
+  "components": [
+    {"id": "start", "name": "Start", "category": "Extractor", "executor_type": "python", "io_spec": [], "upstream_policy": {"type": "all_success"}, "retry_policy": {"max_attempts": 1}, "connections": [{"id": "fs"}]},
+    {"id": "branch_a", "name": "Branch A", "category": "Transformer", "executor_type": "python", "io_spec": [], "upstream_policy": {"type": "all_success"}, "retry_policy": {"max_attempts": 1}, "connections": [{"id": "fs"}]},
+    {"id": "branch_b", "name": "Branch B", "category": "Transformer", "executor_type": "bash", "io_spec": [], "upstream_policy": {"type": "all_success"}, "retry_policy": {"max_attempts": 1}, "connections": [{"id": "fs"}]},
+    {"id": "join", "name": "Join", "category": "Loader", "executor_type": "python", "io_spec": [], "upstream_policy": {"type": "all_success"}, "retry_policy": {"max_attempts": 1}, "connections": [{"id": "warehouse"}]}
+  ],
+  "flow_structure": {
+    "pattern": "dag",
+    "entry_points": ["start"],
+    "edges": [
+      {"from": "start", "to": "branch_a", "edge_type": "success"},
+      {"from": "start", "to": "branch_b", "edge_type": "success"},
+      {"from": "branch_a", "to": "join", "edge_type": "success"},
+      {"from": "branch_b", "to": "join", "edge_type": "success"}
+    ]
+  },
+  "parameters": {"pipeline": {}, "components": {}, "environment": {}},
+  "integrations": {"connections": [{"id": "fs", "type": "filesystem", "authentication": {"type": "none"}}, {"id": "warehouse", "type": "database", "authentication": {"type": "none"}}]}
+}

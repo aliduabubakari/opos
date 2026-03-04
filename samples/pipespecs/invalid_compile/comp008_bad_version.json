@@ -1,0 +1,11 @@
+{
+  "pipespec_version": "2.0",
+  "metadata": {},
+  "pipeline_summary": {"name": "bad_version", "description": "Bad version", "complexity": "low"},
+  "components": [
+    {"id": "t1", "name": "Task 1", "category": "Extractor", "executor_type": "python", "io_spec": [], "upstream_policy": {"type": "all_success"}, "retry_policy": {"max_attempts": 1}, "connections": []}
+  ],
+  "flow_structure": {"pattern": "sequential", "entry_points": ["t1"], "edges": []},
+  "parameters": {"pipeline": {}, "components": {}, "environment": {}},
+  "integrations": {"connections": []}
+}

@@ -1,0 +1,11 @@
+{
+  "pipespec_version": "1.0",
+  "metadata": {"analysis_timestamp": "2026-01-05T10:10:00Z"},
+  "pipeline_summary": {"name": "sem002_bad_edge", "description": "Edge points to unknown target", "complexity": "low"},
+  "components": [
+    {"id": "start", "name": "Start", "category": "Extractor", "executor_type": "python", "io_spec": [], "upstream_policy": {"type": "all_success"}, "retry_policy": {"max_attempts": 1}, "connections": []}
+  ],
+  "flow_structure": {"pattern": "sequential", "entry_points": ["start"], "edges": [{"from": "start", "to": "missing_task", "edge_type": "success"}]},
+  "parameters": {"pipeline": {}, "components": {}, "environment": {}},
+  "integrations": {"connections": []}
+}
