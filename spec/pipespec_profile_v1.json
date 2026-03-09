@@ -1,0 +1,157 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://prompt2dag.dev/schemas/pipespec/profile/v1.json",
+  "title": "PipeSpec Profile v1.0 (OPOS Compiler Input Contract)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "pipespec_version",
+    "metadata",
+    "pipeline_summary",
+    "components",
+    "flow_structure",
+    "parameters",
+    "integrations"
+  ],
+  "properties": {
+    "pipespec_version": {"type": "string"},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "analysis_timestamp": {"type": "string"},
+        "source_file": {"type": "string"},
+        "llm_provider": {"type": "string"},
+        "llm_model": {"type": "string"}
+      }
+    },
+    "pipeline_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {"type": "string"},
+        "description": {"type": "string"},
+        "complexity": {"type": "string", "enum": ["low", "medium", "high"]}
+      }
+    },
+    "components": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {"type": "string"},
+          "name": {"type": "string"},
+          "category": {"type": "string"},
+          "description": {"type": "string"},
+          "executor_type": {"type": "string"},
+          "executor_config": {"type": ["object", "null"], "additionalProperties": true},
+          "io_spec": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "name": {"type": "string"},
+                "direction": {"type": "string", "enum": ["input", "output"]},
+                "kind": {"type": "string"},
+                "format": {"type": ["string", "null"]},
+                "path_pattern": {"type": ["string", "null"]},
+                "connection_id": {"type": ["string", "null"]}
+              }
+            }
+          },
+          "upstream_policy": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "type": {"type": "string"},
+              "description": {"type": ["string", "null"]},
+              "timeout_seconds": {"type": ["integer", "null"]}
+            }
+          },
+          "retry_policy": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "max_attempts": {"type": "integer"},
+              "delay_seconds": {"type": "integer"},
+              "exponential_backoff": {"type": "boolean"},
+              "retry_on": {"type": "array", "items": {"type": "string"}},
+              "multiplier": {"type": ["number", "null"]},
+              "max_delay_seconds": {"type": ["integer", "null"]}
+            }
+          },
+          "connections": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "id": {"type": "string"},
+                "type": {"type": ["string", "null"]},
+                "purpose": {"type": ["string", "null"]}
+              }
+            }
+          }
+        }
+      }
+    },
+    "flow_structure": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "pattern": {"type": "string"},
+        "entry_points": {"type": "array", "items": {"type": "string"}},
+        "edges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "from": {"type": "string"},
+              "to": {"type": "string"},
+              "edge_type": {"type": "string"},
+              "condition": {"type": ["string", "null"]}
+            }
+          }
+        }
+      }
+    },
+    "parameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pipeline", "components", "environment"],
+      "properties": {
+        "pipeline": {"type": "object", "additionalProperties": true},
+        "schedule": {"type": "object", "additionalProperties": true},
+        "components": {"type": "object", "additionalProperties": true},
+        "environment": {"type": "object", "additionalProperties": true}
+      }
+    },
+    "integrations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["connections"],
+      "properties": {
+        "connections": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {"type": "string"},
+              "name": {"type": "string"},
+              "type": {"type": "string"},
+              "config": {"type": "object", "additionalProperties": true},
+              "authentication": {"type": "object", "additionalProperties": true},
+              "used_by_components": {"type": "array", "items": {"type": "string"}},
+              "direction": {"type": "string"},
+              "rate_limit": {"type": ["string", "null"]}
+            }
+          }
+        }
+      }
+    }
+  }
+}

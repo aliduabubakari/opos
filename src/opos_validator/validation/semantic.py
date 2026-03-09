@@ -16,7 +16,22 @@ def _integration_ids(doc: dict[str, Any]) -> list[str]:
     return [i.get("id") for i in doc.get("integrations", []) if i.get("id")]
 
 
-def validate_semantics(doc: dict[str, Any]) -> tuple[list[ValidationIssue], list[ValidationIssue]]:
+def _build_graph(components: list[str], edges: list[dict[str, Any]]) -> tuple[dict[str, list[str]], dict[str, list[str]]]:
+    out_graph: dict[str, list[str]] = {cid: [] for cid in components}
+    undirected: dict[str, list[str]] = {cid: [] for cid in components}
+    for edge in edges:
+        src = edge.get("from")
+        dst = edge.get("to")
+        if src in out_graph and dst in out_graph:
+            out_graph[src].append(dst)
+            undirected[src].append(dst)
+            undirected[dst].append(src)
+    return out_graph, undirected
+
+
+def validate_semantics(
+    doc: dict[str, Any], *, strict: bool = False
+) -> tuple[list[ValidationIssue], list[ValidationIssue]]:
     errors: list[ValidationIssue] = []
     warnings: list[ValidationIssue] = []
 
@@ -38,14 +53,12 @@ def validate_semantics(doc: dict[str, Any]) -> tuple[list[ValidationIssue], list
             )
 
     pattern = doc.get("flow", {}).get("pattern")
+    out_graph, undirected = _build_graph(components, edges)
+
     if pattern in {"sequential", "parallel", "dag"}:
-        graph: dict[str, list[str]] = {cid: [] for cid in components}
         indeg: dict[str, int] = {cid: 0 for cid in components}
-        for edge in edges:
-            src = edge.get("from")
-            dst = edge.get("to")
-            if src in graph and dst in indeg:
-                graph[src].append(dst)
+        for src in components:
+            for dst in out_graph[src]:
                 indeg[dst] += 1
 
         q = deque([n for n in components if indeg[n] == 0])
@@ -53,7 +66,7 @@ def validate_semantics(doc: dict[str, Any]) -> tuple[list[ValidationIssue], list
         while q:
             n = q.popleft()
             seen += 1
-            for nxt in graph[n]:
+            for nxt in out_graph[n]:
                 indeg[nxt] -= 1
                 if indeg[nxt] == 0:
                     q.append(nxt)
@@ -126,18 +139,91 @@ def validate_semantics(doc: dict[str, Any]) -> tuple[list[ValidationIssue], list
         "Notifier": {"email", "http_request", "custom"},
         "Sensor": {"http_request", "python_script", "custom"},
         "Reconciliator": {"python_script", "sql", "custom"},
-        "Custom": {"custom", "python_script", "container", "bash", "sql", "http_request", "email"}
+        "Custom": {"custom", "python_script", "container", "bash", "sql", "http_request", "email"},
     }
     for idx, comp in enumerate(doc.get("components", [])):
         category = comp.get("category")
         executor = (comp.get("executor") or {}).get("type")
         if category in allowed and executor and executor not in allowed[category]:
-            warnings.append(
+            issue = ValidationIssue(
+                "SEM010",
+                f"category '{category}' incompatible with executor '{executor}'",
+                f"$.components[{idx}]",
+            )
+            if strict:
+                errors.append(issue)
+            else:
+                warnings.append(issue)
+
+    # SEM011: all components should be reachable from entry points.
+    reachable: set[str] = set()
+    q = deque([ep for ep in entry_points if ep in component_set])
+    while q:
+        node = q.popleft()
+        if node in reachable:
+            continue
+        reachable.add(node)
+        for nxt in out_graph.get(node, []):
+            q.append(nxt)
+    unreachable = sorted(component_set - reachable)
+    if unreachable:
+        errors.append(
+            ValidationIssue(
+                "SEM011",
+                f"unreachable components from entry_points: {', '.join(unreachable)}",
+                "$.flow",
+            )
+        )
+
+    # SEM012: graph should be a single weakly connected component.
+    if components:
+        seen: set[str] = set()
+        groups = 0
+        for start in components:
+            if start in seen:
+                continue
+            groups += 1
+            qq = deque([start])
+            while qq:
+                node = qq.popleft()
+                if node in seen:
+                    continue
+                seen.add(node)
+                for nxt in undirected.get(node, []):
+                    qq.append(nxt)
+        if groups > 1:
+            errors.append(
                 ValidationIssue(
-                    "SEM010",
-                    f"category '{category}' usually incompatible with executor '{executor}'",
-                    f"$.components[{idx}]",
+                    "SEM012",
+                    f"flow has disconnected subgraphs ({groups} groups)",
+                    "$.flow.edges",
                 )
             )
+
+    # SEM013: retry configuration coherence.
+    for idx, comp in enumerate(doc.get("components", [])):
+        retry = comp.get("retry") or {}
+        strategy = retry.get("strategy")
+        delay = retry.get("delay_seconds")
+        max_delay = retry.get("max_delay_seconds")
+        multiplier = retry.get("multiplier")
+
+        if strategy == "exponential":
+            if multiplier is not None and multiplier <= 1:
+                errors.append(
+                    ValidationIssue(
+                        "SEM013",
+                        "exponential retry requires multiplier > 1",
+                        f"$.components[{idx}].retry.multiplier",
+                    )
+                )
+            if delay is not None and max_delay is not None and max_delay < delay:
+                errors.append(
+                    ValidationIssue(
+                        "SEM013",
+                        "max_delay_seconds must be >= delay_seconds",
+                        f"$.components[{idx}].retry.max_delay_seconds",
+                    )
+                )
 
     return errors, warnings

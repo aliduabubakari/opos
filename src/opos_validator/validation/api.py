@@ -9,9 +9,11 @@ from opos_validator.validation.schema import validate_against_schema
 from opos_validator.validation.semantic import validate_semantics
 
 
-def validate_opos(doc: dict[str, Any], *, schema_version: str = "1.0") -> ValidationReport:
+def validate_opos(
+    doc: dict[str, Any], *, schema_version: str = "1.0", strict: bool = False
+) -> ValidationReport:
     errors, warnings = validate_against_schema(doc, schema_version=schema_version)
-    sem_errors, sem_warnings = validate_semantics(doc)
+    sem_errors, sem_warnings = validate_semantics(doc, strict=strict)
     errors.extend(sem_errors)
     warnings.extend(sem_warnings)
     return ValidationReport(

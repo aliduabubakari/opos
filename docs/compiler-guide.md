@@ -2,6 +2,24 @@
 
 This guide defines deterministic PipeSpec v1.0 to OPOS v1.0 mapping.
 
+## Input Contract (Strict PipeSpec Profile)
+
+Compiler input is validated against:
+- `spec/pipespec_profile_v1.json`
+
+If profile validation fails, compiler returns:
+- `COMP012` with path-aware message.
+
+## Formal Mapping Spec
+
+Machine-readable mapping policy is stored at:
+- `spec/mappings/pipespec_to_opos_v1.json`
+
+The compiler reads this spec for:
+- executor type mapping
+- parameter type mapping
+- determinism rules and orchestrator invariants metadata
+
 ## Canonical Ordering
 - Sort `integrations` by `id`.
 - Sort `components` by topological order from `flow.edges`, tie-break with `id`.

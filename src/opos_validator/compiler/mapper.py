@@ -5,30 +5,12 @@ from __future__ import annotations
 from collections import deque
 from typing import Any
 
+from opos_validator.compiler.mapping_spec import executor_mapping, parameter_type_mapping
 from opos_validator.compiler.models import CompileError, CompileOptions
+from opos_validator.compiler.profile import validate_pipespec_profile
 
-EXECUTOR_MAP = {
-    "python": "python_script",
-    "bash": "bash",
-    "sql": "sql",
-    "http": "http_request",
-    "container": "container",
-    "email": "email",
-    "custom": "custom",
-}
-
-TYPE_MAP = {
-    "string": "STRING",
-    "int": "INT",
-    "integer": "INT",
-    "float": "FLOAT",
-    "boolean": "BOOLEAN",
-    "datetime": "DATETIME",
-    "date": "DATE",
-    "file": "FILE",
-    "json": "JSON",
-    "array": "ARRAY",
-}
+EXECUTOR_MAP = executor_mapping()
+TYPE_MAP = parameter_type_mapping()
 
 
 def _omits_none(d: dict[str, Any]) -> dict[str, Any]:
@@ -97,7 +79,12 @@ def _collect_secrets(params_env: dict[str, Any]) -> list[dict[str, Any]]:
 def _build_integrations(pipespec: dict[str, Any]) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     for idx, connection in enumerate(pipespec.get("integrations", {}).get("connections", [])):
-        connection_id = _require(connection.get("id"), "COMP007", "integration id is required", f"$.integrations.connections[{idx}].id")
+        connection_id = _require(
+            connection.get("id"),
+            "COMP007",
+            "integration id is required",
+            f"$.integrations.connections[{idx}].id",
+        )
 
         auth = connection.get("authentication") or {}
         cfg = connection.get("config") or {}
@@ -134,20 +121,41 @@ def _build_integrations(pipespec: dict[str, Any]) -> list[dict[str, Any]]:
 
 def _convert_component(comp: dict[str, Any], strict: bool, comp_idx: int) -> dict[str, Any]:
     comp_id = _require(comp.get("id"), "COMP002", "component id is required", f"$.components[{comp_idx}].id")
-    comp_name = _require(comp.get("name"), "COMP003", "component name is required", f"$.components[{comp_idx}].name")
-    comp_category = _require(comp.get("category"), "COMP004", "component category is required", f"$.components[{comp_idx}].category")
+    comp_name = _require(
+        comp.get("name"), "COMP003", "component name is required", f"$.components[{comp_idx}].name"
+    )
+    comp_category = _require(
+        comp.get("category"),
+        "COMP004",
+        "component category is required",
+        f"$.components[{comp_idx}].category",
+    )
 
     executor_type_raw = str(comp.get("executor_type", "custom")).lower()
     mapped = EXECUTOR_MAP.get(executor_type_raw)
     if mapped is None:
         if strict:
-            raise CompileError("COMP001", f"unsupported executor_type: {executor_type_raw}", f"$.components[{comp_idx}].executor_type")
+            raise CompileError(
+                "COMP001",
+                f"unsupported executor_type: {executor_type_raw}",
+                f"$.components[{comp_idx}].executor_type",
+            )
         mapped = "custom"
 
     io_specs = []
     for io_idx, io in enumerate(comp.get("io_spec", [])):
-        io_name = _require(io.get("name"), "COMP005", "io name is required", f"$.components[{comp_idx}].io_spec[{io_idx}].name")
-        io_kind = _require(io.get("kind"), "COMP006", "io kind is required", f"$.components[{comp_idx}].io_spec[{io_idx}].kind")
+        io_name = _require(
+            io.get("name"),
+            "COMP005",
+            "io name is required",
+            f"$.components[{comp_idx}].io_spec[{io_idx}].name",
+        )
+        io_kind = _require(
+            io.get("kind"),
+            "COMP006",
+            "io kind is required",
+            f"$.components[{comp_idx}].io_spec[{io_idx}].kind",
+        )
         io_specs.append(
             _omits_none(
                 {
@@ -167,6 +175,8 @@ def _convert_component(comp: dict[str, Any], strict: bool, comp_idx: int) -> dic
             "max_attempts": retry.get("max_attempts", 1),
             "delay_seconds": retry.get("delay_seconds", 30),
             "strategy": "exponential" if retry.get("exponential_backoff") else "constant",
+            "multiplier": retry.get("multiplier"),
+            "max_delay_seconds": retry.get("max_delay_seconds"),
             "retry_on": retry.get("retry_on"),
         }
     )
@@ -193,6 +203,9 @@ def _convert_component(comp: dict[str, Any], strict: bool, comp_idx: int) -> dic
 
 
 def compile_impl(pipespec: dict[str, Any], options: CompileOptions) -> dict[str, Any]:
+    if options.enforce_profile:
+        validate_pipespec_profile(pipespec)
+
     if pipespec.get("pipespec_version") != "1.0":
         raise CompileError("COMP008", "unsupported pipespec_version (expected 1.0)", "$.pipespec_version")
 
@@ -228,7 +241,12 @@ def compile_impl(pipespec: dict[str, Any], options: CompileOptions) -> dict[str,
     p_meta = pipespec.get("metadata") or {}
     params = pipespec.get("parameters") or {}
 
-    pipeline_name = _require(p_summary.get("name"), "COMP010", "pipeline_summary.name is required", "$.pipeline_summary.name")
+    pipeline_name = _require(
+        p_summary.get("name"),
+        "COMP010",
+        "pipeline_summary.name is required",
+        "$.pipeline_summary.name",
+    )
     pipeline_description = _require(
         p_summary.get("description"),
         "COMP011",

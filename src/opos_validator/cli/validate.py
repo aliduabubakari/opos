@@ -14,6 +14,7 @@ def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="opos-validate")
     p.add_argument("input", help="OPOS JSON/YAML file")
     p.add_argument("--semantic-only", action="store_true", help="Reserved for compatibility")
+    p.add_argument("--strict", action="store_true", help="Promote compatibility warnings to errors")
     p.add_argument("--json-report", action="store_true", help="Emit report as JSON")
     return p
 
@@ -22,7 +23,7 @@ def main() -> int:
     args = build_parser().parse_args()
     try:
         doc = load_document(args.input)
-        report = validate_opos(doc)
+        report = validate_opos(doc, strict=args.strict)
         if args.json_report:
             print(json.dumps(report.to_dict(), indent=2))
         else:

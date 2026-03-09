@@ -237,3 +237,28 @@ The implementation in this repository provides:
 - and repeatable quality controls (sample corpus + golden tests).
 
 This foundation enables confident multi-orchestrator pipeline generation at scale.
+
+## 16. New v1.1 Hardening Additions
+
+This implementation now includes four hardening steps:
+1. **Strict PipeSpec Profile**: enforced by `spec/pipespec_profile_v1.json` before compile starts.
+2. **Formal Mapping Spec**: `spec/mappings/pipespec_to_opos_v1.json` drives mapping tables and invariants.
+3. **Expanded Semantic Rules**:
+   - `SEM011` unreachable components
+   - `SEM012` disconnected subgraphs
+   - `SEM013` retry policy coherence
+   - strict mode promotion of `SEM010` warning to error
+4. **Adapter Interfaces**: `src/opos_validator/adapters/` provides a stable projection interface and stub adapters for future targets.
+
+### Strict Validation Mode
+
+`opos-validate --strict` now enforces stronger compatibility checks by promoting compatibility warnings into errors.
+
+### Adapter Interface Flow
+
+```mermaid
+flowchart TD
+  A["OPOS Document"] --> B["Adapter Invariant Validation"]
+  B --> C["Target Stub Adapter"]
+  C --> D["ProjectionResult (stub_ir)"]
+```

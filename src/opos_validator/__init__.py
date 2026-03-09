@@ -1,5 +1,6 @@
 """Public API for OPOS validator toolkit."""
 
+from opos_validator.adapters.registry import get_default_adapters
 from opos_validator.compiler.api import compile_pipespec_to_opos
 from opos_validator.compiler.models import CompileOptions
 from opos_validator.diff.api import semantic_diff_opos
@@ -14,4 +15,5 @@ __all__ = [
     "compile_pipespec_to_opos",
     "semantic_diff_opos",
     "validate_opos",
+    "get_default_adapters",
 ]

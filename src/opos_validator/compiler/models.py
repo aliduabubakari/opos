@@ -8,6 +8,7 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class CompileOptions:
     strict: bool = False
+    enforce_profile: bool = True
 
 
 class CompileError(ValueError):

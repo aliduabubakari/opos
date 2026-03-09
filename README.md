@@ -7,6 +7,7 @@ This repository publishes:
 - Deterministic `pipespec2opos` compiler
 - `opos-validate` schema+semantic validator
 - `opos-diff` semantic comparator
+- Adapter interfaces/stubs for future multi-orchestrator projection
 
 ## Install
 
@@ -19,6 +20,7 @@ pip install opos-validator
 ```bash
 pipespec2opos input.json --out output.yaml --format yaml --strict
 opos-validate output.yaml --json-report
+opos-validate output.yaml --strict
 opos-diff old.yaml new.yaml --json-report
 ```
 
@@ -28,9 +30,14 @@ opos-diff old.yaml new.yaml --json-report
 from opos_validator import CompileOptions, compile_pipespec_to_opos, validate_opos, semantic_diff_opos
 
 opos = compile_pipespec_to_opos(pipespec_doc, options=CompileOptions(strict=True))
-report = validate_opos(opos)
+report = validate_opos(opos, strict=True)
 diff = semantic_diff_opos(opos_a, opos_b)
 ```
+
+## Compiler Contracts
+
+- Strict PipeSpec profile: `spec/pipespec_profile_v1.json`
+- Formal mapping spec: `spec/mappings/pipespec_to_opos_v1.json`
 
 ## Golden Regression Workflow
 
@@ -52,7 +59,8 @@ make update-golden
 
 ## Repository Layout
 
-- `spec/` canonical schema and normative specification
+- `spec/` canonical schema, profile, and mapping specs
 - `docs/` field references and compiler rules
 - `src/opos_validator/` package source
 - `tests/` unit/integration and golden determinism tests
+- `samples/pipespecs/` short corpus for valid/invalid scenario testing
