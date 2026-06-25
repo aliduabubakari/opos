@@ -43,6 +43,37 @@ This reduces the problem from **N × M** to **N + M**:
 
 Each mapping is built once and reused across all other integrations.
 
+### The Full Pipeline Stack
+
+OPOS addresses the **orchestration layer** — what components exist, how they connect, and how they're scheduled. But a complete pipeline also needs a **transformation layer** — what actually runs inside each component.
+
+OPOS references the [Open Transformation Specification (OTS)](https://github.com/francescomucio/open-transformation-specification) as the complementary standard for the transformation layer. Together they cover the full stack:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Full Pipeline Stack                   │
+│                                                          │
+│  ┌─────────────────────────────────────────────────┐    │
+│  │              OPOS (Orchestration)                 │    │
+│  │                                                   │    │
+│  │  PipeSpec ──→ OrchSpec ──→ Airflow/Prefect/...   │    │
+│  │  (describe)    (define)     (execute)             │    │
+│  │                         │                         │    │
+│  │                         │ ots_export              │    │
+│  │                         ▼                         │    │
+│  │  ┌─────────────────────────────────────────┐     │    │
+│  │  │          OTS (Transformation)            │     │    │
+│  │  │                                         │     │    │
+│  │  │  SQL queries, materialization,          │     │    │
+│  │  │  data quality tests, UDFs               │     │    │
+│  │  │                                         │     │    │
+│  │  │  github.com/francescomucio/             │     │    │
+│  │  │    open-transformation-specification    │     │    │
+│  │  └─────────────────────────────────────────┘     │    │
+│  └─────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────┘
+```
+
 ---
 
 ## 2. Layer Design
@@ -176,7 +207,83 @@ Kestra, Kubeflow, and Flyte adapters emit placeholder IR — ready for real gene
 
 ---
 
-## 5. Extensibility
+## 5. The Transformation Layer — OTS
+
+While OPOS defines the **orchestration layer** (what runs, in what order, on what schedule), the [Open Transformation Specification (OTS)](https://github.com/francescomucio/open-transformation-specification) defines the **transformation layer** (what SQL or code executes inside each component).
+
+### 5.1 What OTS Is
+
+OTS is a community-driven open specification (currently v0.2.1) that standardizes how data transformations are defined. It covers:
+
+| Artifact | Description |
+|----------|-------------|
+| **Open Transformation Definition (OTD)** | A structured definition of a SQL data transformation, including source tables, target materialization, and business logic |
+| **UDF Definition** | A user-defined function with signature, implementation, and dependencies |
+| **Test Definition** | A data quality test with SQL assertions, parameters, and scope (table or column level) |
+| **OTS Module** | A collection of related transformations, UDFs, and tests targeting the same database and schema |
+
+OTS is to data transformations what OrchSpec is to orchestration: a portable, tool-agnostic specification that enables interoperability.
+
+### 5.2 The Bridge: `ots_export`
+
+OrchSpec's schema includes an `ots_export` field that maps orchestration components to transformation definitions:
+
+```json
+{
+  "ots_export": {
+    "ots_version": "0.2.1",
+    "module_id": "sales_analytics",
+    "component_mappings": [
+      {
+        "component_id": "transform_sales",
+        "ots_type": "sql_transformation",
+        "ots_transformation_id": "daily_sales_agg",
+        "materialization": "incremental"
+      },
+      {
+        "component_id": "validate_quality",
+        "ots_type": "sql_transformation",
+        "ots_transformation_id": "sales_quality_checks",
+        "materialization": "ephemeral"
+      }
+    ]
+  }
+}
+```
+
+This bridge means:
+- An OrchSpec document declares **which components** exist and **how they connect** (orchestration)
+- An OTS document declares **what transformation** each component executes (transformation)
+- The `ots_export` field links them, mapping component IDs to OTS transformation IDs with materialization strategies
+
+### 5.3 Why Separate Specifications?
+
+| Concern | OPOS (OrchSpec) | OTS |
+|---------|----------------|-----|
+| **Layer** | Orchestration | Transformation |
+| **Question answered** | "What runs, in what order, on what schedule?" | "What SQL/transformation runs inside each step?" |
+| **Audience** | Platform engineers, CI/CD, orchestrator operators | Analytics engineers, data engineers, SQL developers |
+| **Lifecycle** | DAG deployment, scheduling, monitoring | Transformation development, testing, materialization |
+| **Tools** | Airflow, Prefect, Dagster, Argo | dbt, SQLMesh, Tee for Transform, OTS-compliant tools |
+| **Versioning** | Independently versioned (v1.0) | Independently versioned (v0.2.1) |
+
+Keeping them separate is intentional:
+- Each spec can evolve at its own pace
+- Each spec serves its own community
+- Implementations can choose which layers to adopt
+- The bridge (`ots_export`) keeps them connected without coupling
+
+### 5.4 Analogy: OpenAPI + JSON Schema
+
+The OPOS/OTS relationship mirrors OpenAPI and JSON Schema:
+- **OpenAPI** defines the API structure (endpoints, methods, parameters) — like OrchSpec defines the DAG structure
+- **JSON Schema** defines the data shape (types, validation, constraints) — like OTS defines the transformation shape
+- OpenAPI **references** JSON Schema; it doesn't embed or replace it
+The same principle applies here: OrchSpec references OTS for transformation definitions.
+
+---
+
+## 6. Extensibility
 
 Both layers are designed for extension:
 
@@ -195,26 +302,58 @@ Both layers are designed for extension:
 
 ---
 
-## 6. Versioning
+## 7. Versioning
 
 Each layer follows [Semantic Versioning](https://semver.org/) independently:
 
 - **PipeSpec v1.0**: Stable extraction schema
 - **OrchSpec v1.0**: Stable canonical schema with 21 validation rules
+- **OTS**: Independently versioned by its community (currently v0.2.1)
 - **Compiler**: Versioned separately; pin for reproducibility
 
 The OPOS standard itself is versioned through the combination of its layer versions. An OPOS-conformant implementation specifies which versions of PipeSpec and OrchSpec it supports.
 
 ---
 
-## 7. Related Projects
+## 8. Related Projects
 
 | Project | Relationship |
 |---------|-------------|
 | [PipeSpec](https://github.com/aliduabubakari/pipespec) | Extraction layer — PipeSpec schema, validator, LLM generation tools |
 | [OrchSpec](https://github.com/aliduabubakari/orchspec) | Canonical layer — OrchSpec schema, compiler, validator, diff, adapters |
+| [OTS](https://github.com/francescomucio/open-transformation-specification) | Transformation layer — SQL transformations, data quality tests, UDFs; referenced by OrchSpec's `ots_export` field |
 | Apache Airflow | Target orchestrator (real projection) |
 | Prefect | Target orchestrator (real projection) |
 | Dagster | Target orchestrator (real projection) |
 | Argo Workflows | Target orchestrator (real projection) |
 | Kestra, Kubeflow, Flyte | Target orchestrators (stub projections) |
+| dbt, SQLMesh, Tee for Transform | Transformation tools compatible with OTS |
+
+---
+
+## 9. Future Evolution
+
+### 9.1 OTS Adapter
+
+A natural next step is an **OTS adapter** for OrchSpec that reads the `ots_export` field and generates OTS-compliant transformation definitions alongside the orchestrator DAG. This would enable:
+
+```
+PipeSpec ──→ OrchSpec ──┬──→ Airflow DAG (orchestration)
+                         └──→ OTS Module (transformation)
+```
+
+A single OrchSpec document would project to both layers simultaneously — the orchestrator DAG for scheduling and execution, and the OTS module for transformation definition and materialization.
+
+### 9.2 Remaining Stub Adapters
+
+Real projectors for Kestra (declarative YAML flows), Kubeflow Pipelines (Python SDK), and Flyte (Flytekit) would bring the adapter count to 7 real projections.
+
+### 9.3 Bidirectional Compilation
+
+An OrchSpec → PipeSpec reverse compiler would enable roundtrip validation: compile PipeSpec → OrchSpec → PipeSpec' and verify semantic equivalence.
+
+### 9.4 Visualization & Tooling
+
+- DAG graph visualization from OrchSpec documents
+- Schema registry for OPOS-compatible extensions
+- CI/CD integration for pipeline change auditing via `orchspec-diff`

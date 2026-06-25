@@ -76,6 +76,12 @@ OrchSpec is the *canonical layer* — a deterministic, strictly validated interm
 
 This separation follows a proven pattern: the extraction layer optimizes for *input flexibility* (LLMs are imperfect), while the canonical layer optimizes for *output reliability* (CI/CD and orchestrator codegen need guarantees).
 
+### The Transformation Layer — OTS
+
+OPOS addresses the **orchestration layer** — what components exist, how they connect, and how they're scheduled. For the **transformation layer** — what SQL or code actually runs inside each component — OPOS references the [Open Transformation Specification (OTS)](https://github.com/francescomucio/open-transformation-specification) as the complementary standard.
+
+OrchSpec's `ots_export` field maps orchestration components to OTS transformation definitions, linking the two layers. See the [architecture document](docs/architecture.md#5-the-transformation-layer--ots) for details on how OTS and OPOS work together.
+
 ---
 
 ## The Full Pipeline Lifecycle
@@ -148,6 +154,7 @@ Apache 2.0 — see [LICENSE](LICENSE).
 
 - [PipeSpec Repository](https://github.com/aliduabubakari/pipespec)
 - [OrchSpec Repository](https://github.com/aliduabubakari/orchspec)
+- [OTS — Open Transformation Specification](https://github.com/francescomucio/open-transformation-specification)
 - [Architecture Document](docs/architecture.md)
 - [Conformance Specification](spec/opos-overview.md)
 - [Changelog](CHANGELOG.md)
